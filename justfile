@@ -8,6 +8,10 @@ default:
 example:
     cargo run --example messages
 
+# Run the Axum integration example.
+example-axum:
+    cargo run --example axum --features axum
+
 # Compile the project.
 build:
     cargo build
@@ -34,7 +38,7 @@ fmt-check:
 
 # Run the test suite.
 test:
-    cargo test
+    cargo test --all-features
 
 # Remove build artifacts.
 clean:

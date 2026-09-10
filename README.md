@@ -26,7 +26,13 @@ claims + rules + action + subject/resource  ->  allow / deny
 praetor = "0.1"
 ```
 
-Praetor targets Rust **1.88+**.
+Praetor targets Rust **1.88+** and has no dependencies by default. The optional
+Axum integration is behind the `axum` feature:
+
+```toml
+[dependencies]
+praetor = { version = "0.1", features = ["axum"] }
+```
 
 ## Quick start
 

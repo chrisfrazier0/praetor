@@ -14,3 +14,20 @@ keywords = ["authorization", "auth", "permissions", "access-control"]
 categories = ["authentication", "rust-patterns", "web-programming"]
 
 [dependencies]
+axum = { version = "0.8", default-features = false, optional = true }
+
+[features]
+axum = ["dep:axum"]
+
+[dev-dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.5", features = ["util"] }
+
+[[example]]
+name = "axum"
+required-features = ["axum"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

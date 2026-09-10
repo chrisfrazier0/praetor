@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `axum` feature providing an Axum integration under `praetor::axum`.
+  The `Praetor<T>` extractor retrieves an `Ability` (or any `T`) that the
+  application's middleware inserted into the request extensions as `Arc<T>`, and
+  the `MissingAbility` rejection converts into a `500 Internal Server Error` when
+  none is present. The core crate has no Axum dependency unless the feature is
+  enabled. Praetor still does not validate JWTs.
+
 ## [0.1.0]
 
 Initial release.

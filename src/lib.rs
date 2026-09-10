@@ -40,12 +40,17 @@
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod ability;
 mod builder;
 mod error;
 mod rule;
 mod subject;
+
+#[cfg(feature = "axum")]
+#[cfg_attr(docsrs, doc(cfg(feature = "axum")))]
+pub mod axum;
 
 pub use ability::Ability;
 pub use builder::AbilityBuilder;
