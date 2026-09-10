@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting started — Praetor</title>
+  <meta name="description" content="A single-page guide to Praetor: install it, model your actions and subjects, build an ability, and authorize subject- and instance-level requests in Rust." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" href="assets/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+</head>
+<body>
+  <!-- top navigation -->
+  <header class="nav">
+    <div class="wrap">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open guide navigation" aria-expanded="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h14v2H1V3Zm0 4h14v2H1V7Zm0 4h14v2H1v-2Z"/></svg>
+        <span class="menu-btn-label">On this page</span>
+      </button>
+      <a class="brand" href="index.html">
+        <img src="assets/logo.png" alt="" />
+        <span>Praetor</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="getting-started.html" class="active">Guide</a>
+        <a href="https://docs.rs/praetor" target="_blank" rel="noopener">API</a>
+        <a class="nav-gh" href="https://github.com/chrisfrazier0/praetor" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="docs">
+    <div class="docs-grid">
+      <!-- sidebar / scrollspy -->
+      <aside class="docs-sidebar" id="sidebar">
+        <p class="side-label">On this page</p>
+        <nav id="toc">
+          <a href="#introduction">Introduction</a>
+          <a href="#installation">Installation</a>
+          <a href="#concepts">Core concepts</a>
+          <a href="#model">1 · Define your model</a>
+          <a href="#ability">2 · Build an ability</a>
+          <a href="#checking">3 · Check permissions</a>
+          <a href="#conditional">4 · Conditional rules</a>
+          <a href="#semantics">5 · Evaluation semantics</a>
+          <a href="#resources">6 · Resources &amp; subjects</a>
+          <a href="#example">7 · A full example</a>
+          <a href="#integration">Framework integration</a>
+          <a href="#next">What&#39;s next</a>
+        </nav>
+      </aside>
+      <div class="scrim" id="scrim"></div>
+
+      <!-- content -->
+      <article class="docs-content">
+        <section id="introduction">
+          <h1>Getting started</h1>
+          <p class="doc-intro">Everything you need to go from zero to authorizing requests with Praetor, on one page.</p>
+          <p>Praetor is a small, strongly typed authorization library for Rust built around composable <code>can</code> and <code>cannot</code> rules. It defines authorization <em>mechanics</em>, not your application&#39;s authorization <em>model</em>: actions, subjects, claims, roles, permissions, and JWT formats all stay in your application. Praetor composes the rules you give it, matches them against a request, and returns a decision.</p>
+          <div class="flow" style="margin:6px 0 4px">
+            <b>claims</b> + <b>rules</b> + <b>action</b> + <b>subject/resource</b>
+            <span class="arrow">→</span>
+            <span class="allow">allow</span> / <span class="deny">deny</span>
+          </div>
+          <p>This guide builds a complete, framework-free example step by step. Read it top to bottom, or jump to any section from the sidebar.</p>
+        </section>
+
+        <section id="installation">
+          <h2>Installation</h2>
+          <p>Add Praetor to your project with Cargo:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy command">Copy</button>
+            <pre><code class="language-bash">cargo add praetor</code></pre>
+          </div>
+          <p>Or add it to your <code>Cargo.toml</code> directly:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-toml">[dependencies]
+praetor = "0.1"</code></pre>
+          </div>
+          <div class="callout"><b>Note.</b> Praetor targets Rust <b>1.88+</b> and has zero dependencies. It is <code>#![forbid(unsafe_code)]</code>.</div>
+        </section>
+
+        <section id="concepts">
+          <h2>Core concepts</h2>
+          <p>Praetor revolves around a handful of ideas. You supply the first three as your own types; Praetor provides the rest.</p>
+          <ul>
+            <li><b>Claims</b> (<code>C</code>) — the authenticated state you build rules from: a user id, roles, permissions, tenancy. Whatever you decoded from a validated token.</li>
+            <li><b>Action</b> (<code>A</code>) — what the caller wants to do, e.g. <code>Read</code>, <code>Update</code>, <code>Delete</code>. Any type that is <code>PartialEq</code>.</li>
+            <li><b>Subject</b> (<code>S</code>) — the logical thing an action applies to, e.g. <code>Message</code>, <code>Room</code>. Any type that is <code>PartialEq</code>.</li>
+            <li><b>Resource</b> (<code>R</code>) — a concrete instance (<code>&amp;message</code>) that maps to a subject via the <code>AbilitySubject</code> trait. Conditional rules run against it.</li>
+            <li><b>Ability</b> — an immutable set of rules bound to one set of claims. You ask it questions with <code>can</code>, <code>cannot</code>, and <code>authorize</code>.</li>
+          </ul>
+          <div class="callout">A <b>logical subject</b> answers &ldquo;can this user update messages at all?&rdquo; A <b>concrete resource</b> answers &ldquo;can this user update <em>this</em> message?&rdquo; Praetor handles both through one interface.</div>
+        </section>
+
+        <section id="model">
+          <h2>1 · Define your model</h2>
+          <p>Praetor is generic over your types, so start by declaring the actions and subjects your application cares about, plus the claims you build rules from. These are plain Rust enums and structs — no macros, no traits to derive beyond <code>PartialEq</code> for the action and subject.</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">#[derive(Clone, Copy, PartialEq, Eq)]
+enum Action { Read, Update, Delete }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Subject { Message }
+
+// The claims you decoded from a validated token.
+struct Claims { user_id: u64 }
+
+// A concrete resource loaded from storage before authorization.
+struct Message { author_id: u64, deleted: bool }</code></pre>
+          </div>
+          <p>To let a <code>Message</code> instance be passed directly to a permission check, implement <code>AbilitySubject</code> to map it to its logical subject:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use praetor::AbilitySubject;
+
+impl AbilitySubject&lt;Subject&gt; for Message {
+    fn subject_type(&amp;self) -&gt; Subject { Subject::Message }
+}</code></pre>
+          </div>
+          <div class="callout"><b>Why this trait?</b> It is what lets a single <code>can</code> method accept either <code>Subject::Message</code> or <code>&amp;message</code>. The resource reports which subject it belongs to, and Praetor takes it from there.</div>
+        </section>
+
+        <section id="ability">
+          <h2>2 · Build an ability</h2>
+          <p>An <code>Ability</code> is an immutable set of rules bound to one set of claims. Create a builder with <code>Ability::builder(claims)</code>, add rules, then call <code>build()</code>. There are four rule methods:</p>
+          <ul>
+            <li><code>can(action, subject)</code> — an unconditional <b>allow</b>.</li>
+            <li><code>cannot(action, subject)</code> — an unconditional <b>deny</b>.</li>
+            <li><code>can_if(action, subject, predicate)</code> — a conditional <b>allow</b>.</li>
+            <li><code>cannot_if(action, subject, predicate)</code> — a conditional <b>deny</b>.</li>
+          </ul>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use praetor::Ability;
+
+let ability = Ability::builder(Claims { user_id: 1 })
+    .can(Action::Read, Subject::Message)
+    .can_if(Action::Update, Subject::Message, |claims, m: &amp;Message| {
+        claims.user_id == m.author_id
+    })
+    .cannot_if(Action::Read, Subject::Message, |_, m: &amp;Message| m.deleted)
+    .build();</code></pre>
+          </div>
+          <p>The rule methods take <code>&amp;mut self</code> and return <code>&amp;mut Self</code>, so they chain fluently — but they also read naturally when you build rules conditionally from claims:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">let mut ability = Ability::builder(claims);
+if ability.claims().is_admin {
+    ability.can(Action::Delete, Subject::Message);
+}
+let ability = ability.build();</code></pre>
+          </div>
+          <div class="callout"><b>Tip.</b> Use <code>ability.claims()</code> on the builder to drive rule construction from authenticated state (roles, permissions, tenancy). The claims are also available on the finished ability.</div>
+        </section>
+
+        <section id="checking">
+          <h2>3 · Check permissions</h2>
+          <p>Ask the ability questions with one unified interface. Every method accepts either a <b>logical subject</b> or a <b>concrete resource reference</b> as its target.</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">let mine = Message { author_id: 1, deleted: false };
+
+// Subject-level check — no instance required.
+assert!(ability.can(Action::Read, Subject::Message));
+
+// Instance-level check — the predicate runs against `mine`.
+assert!(ability.can(Action::Update, &amp;mine));
+
+// `cannot` is the negation of `can`.
+assert!(ability.cannot(Action::Delete, &amp;mine));</code></pre>
+          </div>
+          <p>When you want an error instead of a boolean — for <code>?</code>-style flows in handlers — use <code>authorize</code>. It returns <code>Ok(())</code> when allowed and <code>Err(Forbidden)</code> when denied.</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use praetor::Forbidden;
+
+ability.authorize(Action::Update, &amp;mine)?; // proceeds when allowed
+
+match ability.authorize(Action::Delete, &amp;mine) {
+    Ok(()) =&gt; { /* proceed */ }
+    Err(Forbidden) =&gt; { /* map to HTTP 403 */ }
+}</code></pre>
+          </div>
+          <div class="callout"><code>Forbidden</code> is intentionally opaque: it carries no rule or claims detail and implements <code>std::error::Error</code>. Map it to whatever your framework needs.</div>
+        </section>
+
+        <section id="conditional">
+          <h2>4 · Conditional rules</h2>
+          <p>Unconditional rules (<code>can</code> / <code>cannot</code>) match on action and subject alone. Conditional rules (<code>can_if</code> / <code>cannot_if</code>) additionally run a strongly typed closure against a concrete resource instance:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">// Fn(&amp;Claims, &amp;Message) -&gt; bool
+.can_if(Action::Update, Subject::Message, |claims, m: &amp;Message| {
+    claims.user_id == m.author_id
+})</code></pre>
+          </div>
+          <p>Two rules make conditional behavior predictable:</p>
+          <ul>
+            <li>A conditional rule <b>only matches when a concrete instance is supplied</b>. A subject-only check (<code>can(Update, Subject::Message)</code>) never matches one, because there is no resource to evaluate.</li>
+            <li>The predicate is bound to a specific resource type. If you pass a different concrete type that happens to map to the same subject, the predicate simply does not match — it is not run against the wrong type.</li>
+          </ul>
+          <div class="callout"><b>Heterogeneous resources.</b> A single ability can hold predicates for many resource types (<code>Message</code>, <code>Room</code>, ...). Praetor stores them via internal type erasure that stays invisible to your code — every closure you write remains fully typed.</div>
+        </section>
+
+        <section id="semantics">
+          <h2>5 · Evaluation semantics</h2>
+          <p>When you ask a question, Praetor walks the rules and applies two simple laws:</p>
+          <div class="split" style="margin:8px 0 16px">
+            <div class="rulecard">
+              <h3>Default deny</h3>
+              <p>If no rule matches the request, the answer is <b>deny</b>. Nothing is permitted implicitly.</p>
+            </div>
+            <div class="rulecard">
+              <h3>Last matching rule wins</h3>
+              <p>Rules are evaluated in reverse order, so a later rule overrides an earlier one.</p>
+            </div>
+          </div>
+          <p>Together these let you layer a broad grant and then carve out a precise exception:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">let ability = Ability::builder(())
+    .can(Action::Read, Subject::Message)
+    .cannot_if(Action::Read, Subject::Message, |_, m: &amp;Message| m.deleted)
+    .build();
+
+let deleted = Message { author_id: 1, deleted: true };
+assert!(ability.cannot(Action::Read, &amp;deleted)); // later deny wins
+
+// The conditional deny needs an instance, so a subject-only check
+// still falls through to the unconditional allow.
+assert!(ability.can(Action::Read, Subject::Message));</code></pre>
+          </div>
+        </section>
+
+        <section id="resources">
+          <h2>6 · Resources &amp; subjects</h2>
+          <p>The distinction between a subject and a resource is the key to Praetor&#39;s single-method API:</p>
+          <ul>
+            <li><b>Pass a subject</b> (<code>Subject::Message</code>) to ask a coarse, instance-free question. Only unconditional rules can match.</li>
+            <li><b>Pass a resource reference</b> (<code>&amp;message</code>) to ask about a specific object. Both unconditional and conditional rules can match, and predicates receive the instance.</li>
+          </ul>
+          <p>A resource opts into being a valid target by implementing <code>AbilitySubject&lt;S&gt;</code>, which reports its logical subject. That mapping is the only glue required — the resource itself is stored type-erased internally and never exposed to callers.</p>
+          <div class="callout"><b>Ownership.</b> An <code>Ability</code> owns its claims, so it moves cleanly between layers — for example, into an Axum request extension — and every check has the claims on hand for its predicates.</div>
+        </section>
+
+        <section id="example">
+          <h2>7 · A full example</h2>
+          <p>This mirrors how an application uses Praetor after it has validated a token and decoded its claims: build an ability from those claims, then authorize both subject- and instance-level requests. This is the <code>messages</code> example from the repository.</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use std::collections::HashSet;
+use praetor::{Ability, AbilitySubject};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Action { Read, Update, Delete }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Subject { Message }
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum Permission { ReadMessages, EditOwnMessages }
+
+struct Claims { user_id: u64, permissions: HashSet&lt;Permission&gt; }
+struct Message { author_id: u64, deleted: bool, system: bool }
+
+impl AbilitySubject&lt;Subject&gt; for Message {
+    fn subject_type(&amp;self) -&gt; Subject { Subject::Message }
+}
+
+// Build an ability from authenticated claims. This logic belongs to the
+// application; Praetor only evaluates the rules it is given.
+fn build_ability(claims: Claims) -&gt; Ability&lt;Action, Subject, Claims&gt; {
+    let mut ability = Ability::builder(claims);
+
+    if ability.claims().permissions.contains(&amp;Permission::ReadMessages) {
+        ability.can(Action::Read, Subject::Message);
+    }
+    if ability.claims().permissions.contains(&amp;Permission::EditOwnMessages) {
+        ability.can_if(Action::Update, Subject::Message, |claims, m: &amp;Message| {
+            claims.user_id == m.author_id
+        });
+    }
+
+    // Later rules override earlier ones: deleted messages are never readable,
+    // and system messages are never deletable, regardless of other grants.
+    ability.cannot_if(Action::Read, Subject::Message, |_, m: &amp;Message| m.deleted);
+    ability.cannot_if(Action::Delete, Subject::Message, |_, m: &amp;Message| m.system);
+
+    ability.build()
+}
+
+fn main() {
+    let claims = Claims {
+        user_id: 1,
+        permissions: HashSet::from([
+            Permission::ReadMessages,
+            Permission::EditOwnMessages,
+        ]),
+    };
+    let ability = build_ability(claims);
+
+    let mine = Message { author_id: 1, deleted: false, system: false };
+    let theirs = Message { author_id: 2, deleted: false, system: false };
+    let deleted = Message { author_id: 1, deleted: true, system: false };
+
+    assert!(ability.can(Action::Read, Subject::Message)); // subject-level grant
+    assert!(ability.can(Action::Update, &amp;mine));          // own message
+    assert!(ability.cannot(Action::Update, &amp;theirs));     // someone else's
+    assert!(ability.cannot(Action::Read, &amp;deleted));      // later deny wins
+}</code></pre>
+          </div>
+          <p>Run the example from a clone of the repository with:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy command">Copy</button>
+            <pre><code class="language-bash">cargo run --example messages</code></pre>
+          </div>
+        </section>
+
+        <section id="integration">
+          <h2>Framework integration</h2>
+          <p>Praetor is framework-independent by design. A typical web flow looks like this, with your framework doing the work Praetor deliberately leaves out:</p>
+          <ol>
+            <li>Validate the incoming token and decode it into your <code>Claims</code> type. <b>(Your code.)</b></li>
+            <li>Call <code>build_ability(claims)</code> and stash the <code>Ability</code> in request state — for example, an Axum request extension. <b>(Your code.)</b></li>
+            <li>Load the resource the request targets from storage. <b>(Your code.)</b></li>
+            <li>In the handler, call <code>ability.authorize(action, &amp;resource)?</code> and map <code>Forbidden</code> to an HTTP 403. <b>(Praetor + your code.)</b></li>
+          </ol>
+          <div class="callout">Because the decision is a pure, in-memory operation, it is trivial to unit-test: construct claims, build an ability, and assert on <code>can</code> / <code>cannot</code> with no HTTP or database in sight.</div>
+        </section>
+
+        <section id="next">
+          <h2>What&#39;s next</h2>
+          <p>You now have everything needed to model actions and subjects, build abilities, and authorize requests. From here:</p>
+          <ul>
+            <li>Browse the complete API on <a href="https://docs.rs/praetor" target="_blank" rel="noopener">docs.rs</a>.</li>
+            <li>Read the source and open issues on <a href="https://github.com/chrisfrazier0/praetor" target="_blank" rel="noopener">GitHub</a>.</li>
+          </ul>
+          <p style="margin-top:20px"><a class="btn btn-ghost" href="index.html">← Back home</a></p>
+        </section>
+      </article>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
