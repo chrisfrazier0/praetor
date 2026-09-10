@@ -38,6 +38,9 @@
 //! Predicates are ordinary Rust closures. Evaluation is **default deny**, and
 //! the **last matching rule wins**.
 
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+
 mod ability;
 mod builder;
 mod error;

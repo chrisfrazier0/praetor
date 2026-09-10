@@ -4,6 +4,10 @@
 default:
     @just --list
 
+# Run the messages example.
+example:
+    cargo run --example messages
+
 # Compile the project.
 build:
     cargo build

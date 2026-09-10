@@ -2,5 +2,15 @@
 name = "praetor"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
+authors = ["Chris Frazier"]
+description = "A small, strongly typed authorization library for Rust built around composable can and cannot rules."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/chrisfrazier0/praetor"
+homepage = "https://praetor.frazier.software"
+documentation = "https://docs.rs/praetor"
+keywords = ["authorization", "auth", "permissions", "access-control"]
+categories = ["authentication", "rust-patterns", "web-programming"]
 
 [dependencies]
