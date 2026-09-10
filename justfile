@@ -8,11 +8,11 @@ default:
 build:
     cargo build
 
-# Build an optimized release binary.
+# Build an optimized release build.
 release:
     cargo build --release
 
-# Type-check without producing a binary.
+# Type-check without producing an artifact.
 check:
     cargo check
 
@@ -27,6 +27,10 @@ fmt:
 # Verify formatting without modifying files.
 fmt-check:
     cargo fmt --all -- --check
+
+# Run the test suite.
+test:
+    cargo test
 
 # Remove build artifacts.
 clean:
