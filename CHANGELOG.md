@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Added
 
 - Optional `axum` feature providing an Axum integration under `praetor::axum`.
@@ -41,5 +43,6 @@ Initial release.
 - Evaluation semantics: **default deny** and **last matching rule wins**.
   Conditional rules match only when a concrete resource instance is supplied.
 
-[Unreleased]: https://github.com/chrisfrazier0/praetor/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/chrisfrazier0/praetor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/chrisfrazier0/praetor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chrisfrazier0/praetor/releases/tag/v0.1.0
