@@ -3,7 +3,7 @@
 use crate::ability::Ability;
 use crate::rule::{Effect, Rule};
 
-/// Builds an [`Ability`] by accumulating unconditional rules.
+/// Builds an [`Ability`] by accumulating rules.
 ///
 /// Obtain one with [`Ability::builder`]. Rule methods take `&mut self` and
 /// return `&mut Self`, so both chaining and conditional mutation read
@@ -19,7 +19,7 @@ use crate::rule::{Effect, Rule};
 /// ```
 pub struct AbilityBuilder<A, S, C> {
     claims: Option<C>,
-    rules: Vec<Rule<A, S>>,
+    rules: Vec<Rule<A, S, C>>,
 }
 
 impl<A, S, C> AbilityBuilder<A, S, C> {
@@ -40,21 +40,44 @@ impl<A, S, C> AbilityBuilder<A, S, C> {
 
     /// Adds an unconditional allow rule for `action` on `subject`.
     pub fn can(&mut self, action: A, subject: S) -> &mut Self {
-        self.rules.push(Rule {
-            effect: Effect::Allow,
-            action,
-            subject,
-        });
+        self.rules
+            .push(Rule::unconditional(Effect::Allow, action, subject));
         self
     }
 
     /// Adds an unconditional deny rule for `action` on `subject`.
     pub fn cannot(&mut self, action: A, subject: S) -> &mut Self {
-        self.rules.push(Rule {
-            effect: Effect::Deny,
-            action,
-            subject,
-        });
+        self.rules
+            .push(Rule::unconditional(Effect::Deny, action, subject));
+        self
+    }
+
+    /// Adds a conditional allow rule for `action` on `subject`.
+    ///
+    /// The rule only applies to instance-level checks
+    /// (`ability.can(action, &resource)`) where the resource is of type `R`
+    /// and `predicate(claims, resource)` returns `true`. It never matches a
+    /// subject-only check, since no resource is available to evaluate.
+    pub fn can_if<R, F>(&mut self, action: A, subject: S, predicate: F) -> &mut Self
+    where
+        R: 'static,
+        F: Fn(&C, &R) -> bool + Send + Sync + 'static,
+    {
+        self.rules
+            .push(Rule::conditional(Effect::Allow, action, subject, predicate));
+        self
+    }
+
+    /// Adds a conditional deny rule for `action` on `subject`.
+    ///
+    /// Mirrors [`can_if`](Self::can_if) but denies when the predicate matches.
+    pub fn cannot_if<R, F>(&mut self, action: A, subject: S, predicate: F) -> &mut Self
+    where
+        R: 'static,
+        F: Fn(&C, &R) -> bool + Send + Sync + 'static,
+    {
+        self.rules
+            .push(Rule::conditional(Effect::Deny, action, subject, predicate));
         self
     }
 

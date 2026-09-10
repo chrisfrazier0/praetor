@@ -14,23 +14,29 @@
 //! #[derive(Clone, Copy, PartialEq, Eq)]
 //! enum Subject { Message }
 //!
-//! struct Message;
+//! struct Claims { user_id: u64 }
+//!
+//! struct Message { author_id: u64, deleted: bool }
 //! impl AbilitySubject<Subject> for Message {
 //!     fn subject_type(&self) -> Subject { Subject::Message }
 //! }
 //!
-//! let ability = Ability::builder(())
+//! let ability = Ability::builder(Claims { user_id: 1 })
 //!     .can(Action::Read, Subject::Message)
-//!     .can(Action::Update, Subject::Message)
+//!     .can_if(Action::Update, Subject::Message, |claims, m: &Message| {
+//!         claims.user_id == m.author_id
+//!     })
+//!     .cannot_if(Action::Read, Subject::Message, |_, m: &Message| m.deleted)
 //!     .build();
 //!
-//! let message = Message;
-//! assert!(ability.can(Action::Read, Subject::Message));
-//! assert!(ability.can(Action::Update, &message));
-//! assert!(ability.authorize(Action::Update, &message).is_ok());
+//! let mine = Message { author_id: 1, deleted: false };
+//! assert!(ability.can(Action::Read, Subject::Message)); // unconditional allow
+//! assert!(ability.can(Action::Update, &mine));          // predicate: author matches
+//! assert!(ability.authorize(Action::Update, &mine).is_ok());
 //! ```
 //!
-//! Evaluation is **default deny**, and the **last matching rule wins**.
+//! Predicates are ordinary Rust closures. Evaluation is **default deny**, and
+//! the **last matching rule wins**.
 
 mod ability;
 mod builder;
@@ -42,7 +48,7 @@ pub use ability::Ability;
 pub use builder::AbilityBuilder;
 pub use error::Forbidden;
 pub use rule::Effect;
-pub use subject::{AbilitySubject, IntoTarget, ResourceTarget, SubjectTarget};
+pub use subject::{AbilitySubject, IntoTarget, ResourceTarget, SubjectTarget, Target};
 
 #[cfg(test)]
 mod tests {
@@ -68,9 +74,20 @@ mod tests {
 
     struct Message {
         author_id: u64,
+        deleted: bool,
     }
 
     impl AbilitySubject<Subject> for Message {
+        fn subject_type(&self) -> Subject {
+            Subject::Message
+        }
+    }
+
+    /// A distinct resource type that maps to the same subject as `Message`,
+    /// used to exercise resource-type mismatch in conditional rules.
+    struct Note;
+
+    impl AbilitySubject<Subject> for Note {
         fn subject_type(&self) -> Subject {
             Subject::Message
         }
@@ -112,7 +129,10 @@ mod tests {
 
     #[test]
     fn instance_level_check() {
-        let message = Message { author_id: 1 };
+        let message = Message {
+            author_id: 1,
+            deleted: false,
+        };
         assert_eq!(message.author_id, claims().user_id);
         let ability = Ability::builder(claims())
             .can(Action::Update, Subject::Message)
@@ -123,12 +143,81 @@ mod tests {
 
     #[test]
     fn authorize_maps_to_result() {
-        let message = Message { author_id: 1 };
+        let message = Message {
+            author_id: 1,
+            deleted: false,
+        };
         let ability = Ability::builder(claims())
             .can(Action::Update, Subject::Message)
             .build();
         assert!(ability.authorize(Action::Update, &message).is_ok());
         assert_eq!(ability.authorize(Action::Delete, &message), Err(Forbidden));
+    }
+
+    #[test]
+    fn conditional_matches_only_with_instance_and_predicate() {
+        let ability = Ability::builder(claims())
+            .can_if(Action::Update, Subject::Message, |claims, m: &Message| {
+                claims.user_id == m.author_id
+            })
+            .build();
+
+        // No resource instance: a conditional rule cannot match.
+        assert!(ability.cannot(Action::Update, Subject::Message));
+
+        // Predicate satisfied.
+        let mine = Message {
+            author_id: 1,
+            deleted: false,
+        };
+        assert!(ability.can(Action::Update, &mine));
+
+        // Predicate not satisfied.
+        let theirs = Message {
+            author_id: 2,
+            deleted: false,
+        };
+        assert!(ability.cannot(Action::Update, &theirs));
+    }
+
+    #[test]
+    fn conditional_ignores_wrong_resource_type() {
+        let ability = Ability::builder(claims())
+            .can_if(Action::Update, Subject::Message, |_, _: &Message| true)
+            .build();
+
+        let message = Message {
+            author_id: 1,
+            deleted: false,
+        };
+        assert!(ability.can(Action::Update, &message));
+
+        // `Note` maps to `Subject::Message` but is a different concrete type,
+        // so the `Message` predicate must not match it.
+        assert!(ability.cannot(Action::Update, &Note));
+    }
+
+    #[test]
+    fn conditional_deny_overrides_earlier_allow() {
+        let ability = Ability::builder(claims())
+            .can(Action::Read, Subject::Message)
+            .cannot_if(Action::Read, Subject::Message, |_, m: &Message| m.deleted)
+            .build();
+
+        let live = Message {
+            author_id: 1,
+            deleted: false,
+        };
+        let deleted = Message {
+            author_id: 1,
+            deleted: true,
+        };
+
+        assert!(ability.can(Action::Read, &live));
+        assert!(ability.cannot(Action::Read, &deleted));
+        // The conditional deny needs an instance, so the subject-only check
+        // still falls through to the unconditional allow.
+        assert!(ability.can(Action::Read, Subject::Message));
     }
 
     #[test]
