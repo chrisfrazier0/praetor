@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axum integration — Praetor</title>
+  <meta name="description" content="Add strongly typed authorization to an Axum app with Praetor: enable the axum feature, insert an ability in middleware, extract it in your handler, and authorize a request in a single line." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" href="assets/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+</head>
+<body>
+  <!-- top navigation -->
+  <header class="nav">
+    <div class="wrap">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open guide navigation" aria-expanded="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h14v2H1V3Zm0 4h14v2H1V7Zm0 4h14v2H1v-2Z"/></svg>
+        <span class="menu-btn-label">On this page</span>
+      </button>
+      <a class="brand" href="index.html">
+        <img src="assets/logo.png" alt="" />
+        <span>Praetor</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="getting-started.html" class="active">Guide</a>
+        <a href="https://docs.rs/praetor" target="_blank" rel="noopener">API</a>
+        <a class="nav-gh" href="https://github.com/chrisfrazier0/praetor" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="docs">
+    <div class="docs-grid">
+      <!-- sidebar / scrollspy -->
+      <aside class="docs-sidebar" id="sidebar">
+        <p class="side-label">On this page</p>
+        <nav id="toc">
+          <a href="#introduction">Introduction</a>
+          <a href="#installation">Enable the feature</a>
+          <a href="#flow">How it fits together</a>
+          <a href="#rules">1 · Define your rules</a>
+          <a href="#middleware">2 · Insert the ability</a>
+          <a href="#handler">3 · Extract &amp; authorize</a>
+          <a href="#wiring">4 · Wire up the router</a>
+          <a href="#missing">Missing abilities</a>
+          <a href="#example">Run the example</a>
+          <a href="#next">What&#39;s next</a>
+        </nav>
+      </aside>
+      <div class="scrim" id="scrim"></div>
+
+      <!-- content -->
+      <article class="docs-content">
+        <section id="introduction">
+          <h1>Axum integration</h1>
+          <p class="doc-intro">Add strongly typed authorization to an Axum service — the check itself is a single line in your handler.</p>
+          <p>Praetor ships an optional, tiny Axum integration behind the <code>axum</code> feature. It does one thing: hand your handler the <code>Ability</code> your middleware built, so you can call <code>authorize</code> and let the compiler check your rules. Praetor still never validates tokens — that stays in your application, exactly where it belongs.</p>
+          <div class="flow" style="margin:6px 0 4px">
+            <b>middleware</b>: validate + build
+            <span class="arrow">→</span>
+            <b>extract</b>
+            <span class="arrow">→</span>
+            <span class="allow">authorize</span>
+          </div>
+          <p>This guide assumes you have read the <a href="getting-started.html">main guide</a> and know how to model actions, subjects, and claims. Here we focus purely on wiring an ability through an Axum request.</p>
+        </section>
+
+        <section id="installation">
+          <h2>Enable the feature</h2>
+          <p>The integration is off by default, so the core library stays dependency-free. Turn it on with the <code>axum</code> feature:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy command">Copy</button>
+            <pre><code class="language-bash">cargo add praetor --features axum</code></pre>
+          </div>
+          <p>Or in your <code>Cargo.toml</code> directly:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-toml">[dependencies]
+praetor = { version = "0.1", features = ["axum"] }</code></pre>
+          </div>
+          <div class="callout"><b>Note.</b> Praetor targets Axum <b>0.8+</b>. Enabling the feature adds the extractor under <code>praetor::axum</code>; the rest of the library is unchanged.</div>
+        </section>
+
+        <section id="flow">
+          <h2>How it fits together</h2>
+          <p>The division of labor is the whole idea. Your application does the authentication; Praetor does the authorization; the feature is just the thin seam between them.</p>
+          <div class="split" style="margin:8px 0 16px">
+            <div class="rulecard">
+              <h3>Your middleware</h3>
+              <p>Validate the token, decode your <code>Claims</code>, call <code>build_ability</code>, and insert the ability into the request as an <code>Arc</code>.</p>
+            </div>
+            <div class="rulecard">
+              <h3>Praetor&#39;s extractor</h3>
+              <p><code>Praetor&lt;T&gt;</code> pulls that shared ability back out in your handler so you can <code>authorize</code> against the resource you loaded.</p>
+            </div>
+          </div>
+          <p>Concretely, a request flows through four steps — the first three are yours, the fourth is one line:</p>
+          <ol>
+            <li>Middleware validates the request and <b>builds an ability</b> from the claims.</li>
+            <li>Middleware <b>inserts</b> the ability into the request extensions.</li>
+            <li>The handler <b>extracts</b> it with <code>Praetor&lt;AppAbility&gt;</code>.</li>
+            <li>The handler <b>authorizes</b>: <code>ability.authorize(action, &amp;resource)?</code>.</li>
+          </ol>
+        </section>
+
+        <section id="rules">
+          <h2>1 · Define your rules</h2>
+          <p>This is where Praetor earns its keep. Your entire authorization model is one function that turns claims into an ability — ordinary Rust, checked by the compiler, with no policy files or DSL. Anyone may read messages; only the author may update their own:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use praetor::{Ability, AbilitySubject};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Action { Read, Update }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Subject { Message }
+
+#[derive(Clone)]
+struct Claims { user_id: u64 }
+
+#[derive(Clone)]
+struct Message { id: u64, author_id: u64, body: String }
+
+impl AbilitySubject&lt;Subject&gt; for Message {
+    fn subject_type(&amp;self) -&gt; Subject { Subject::Message }
+}
+
+// A type alias keeps handler signatures short.
+type AppAbility = Ability&lt;Action, Subject, Claims&gt;;
+
+// Your whole authorization model: claims in, ability out.
+fn build_ability(claims: Claims) -&gt; AppAbility {
+    Ability::builder(claims)
+        .can(Action::Read, Subject::Message)
+        .can_if(Action::Update, Subject::Message, |claims, m: &amp;Message| {
+            claims.user_id == m.author_id
+        })
+        .build()
+}</code></pre>
+          </div>
+          <div class="callout"><b>That predicate is just a closure.</b> <code>|claims, m: &amp;Message| claims.user_id == m.author_id</code> is normal, type-checked Rust — no query language, no reflection. Grow it however your model needs.</div>
+        </section>
+
+        <section id="middleware">
+          <h2>2 · Insert the ability</h2>
+          <p>Your middleware validates the request the way it always has, then builds the ability and stores it in the request extensions as an <code>Arc</code>. Praetor never inspects the token itself:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use std::sync::Arc;
+use axum::{extract::Request, middleware::Next, response::Response};
+
+async fn auth(mut request: Request, next: Next) -&gt; Response {
+    // Pretend we validated a JWT and decoded these claims.
+    let claims = Claims { user_id: 1 };
+    request.extensions_mut().insert(Arc::new(build_ability(claims)));
+    next.run(request).await
+}</code></pre>
+          </div>
+          <div class="callout"><b>Why <code>Arc</code>?</b> An ability holds your rule closures, so it is shared rather than cloned. Wrapping it in <code>Arc</code> lets every handler extract it cheaply — the extractor only clones the pointer.</div>
+        </section>
+
+        <section id="handler">
+          <h2>3 · Extract &amp; authorize</h2>
+          <p>Add the <code>Praetor&lt;AppAbility&gt;</code> extractor to your handler. It hands you the shared ability, which derefs to the underlying <code>Ability</code> — so the authorization check is a single <code>?</code> line after you load the resource:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use axum::extract::{Path, State};
+use praetor::axum::Praetor;
+
+async fn update_message(
+    Praetor(ability): Praetor&lt;AppAbility&gt;,
+    Path(id): Path&lt;u64&gt;,
+    State(state): State&lt;AppState&gt;,
+) -&gt; Result&lt;String, ApiError&gt; {
+    let message = state.messages.get(&amp;id).cloned().ok_or(ApiError::NotFound)?;
+
+    ability.authorize(Action::Update, &amp;message)?; // &lt;- the whole check
+
+    Ok(format!("updated message {}", message.id))
+}</code></pre>
+          </div>
+          <p>Map Praetor&#39;s <code>Forbidden</code> onto your own error type so <code>?</code> turns a denied request into an HTTP 403:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+
+enum ApiError { NotFound, Forbidden }
+
+impl From&lt;praetor::Forbidden&gt; for ApiError {
+    fn from(_: praetor::Forbidden) -&gt; Self { ApiError::Forbidden }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -&gt; Response {
+        match self {
+            ApiError::NotFound  =&gt; (StatusCode::NOT_FOUND,  "not found").into_response(),
+            ApiError::Forbidden =&gt; (StatusCode::FORBIDDEN, "forbidden").into_response(),
+        }
+    }
+}</code></pre>
+          </div>
+          <div class="callout">Destructuring <code>Praetor(ability)</code> gives you an <code>Arc&lt;AppAbility&gt;</code>. Because it derefs to the ability, you call <code>ability.authorize(..)</code>, <code>ability.can(..)</code>, and friends directly — no unwrapping.</div>
+        </section>
+
+        <section id="wiring">
+          <h2>4 · Wire up the router</h2>
+          <p>Attach the middleware as a layer so every routed request gets an ability before it reaches a handler:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy code">Copy</button>
+            <pre><code class="language-rust">use axum::{Router, middleware, routing::get};
+
+let app = Router::new()
+    .route("/messages/{id}", get(update_message))
+    .layer(middleware::from_fn(auth))
+    .with_state(state);</code></pre>
+          </div>
+          <p>That is the entire integration: define rules once, insert the ability in middleware, and authorize in one line per handler.</p>
+        </section>
+
+        <section id="missing">
+          <h2>Missing abilities</h2>
+          <p>If a handler using <code>Praetor&lt;T&gt;</code> runs without the middleware ever inserting an ability, extraction fails with <code>MissingAbility</code>, which converts into a <code>500 Internal Server Error</code>. That is deliberate: a missing ability means the layer was not wired up, which is a server misconfiguration rather than a client problem.</p>
+          <div class="callout"><b>Want a different status?</b> Insert the ability unconditionally for every request, or wrap the extractor in your own type that maps absence to, say, <code>401 Unauthorized</code>. Praetor stays out of that policy decision.</div>
+        </section>
+
+        <section id="example">
+          <h2>Run the example</h2>
+          <p>The repository ships a complete, runnable version of everything above in <code>examples/axum.rs</code>. It builds the router, drives two requests in-process, and prints the results — <code>200</code> for the owner and <code>403</code> for someone else:</p>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy command">Copy</button>
+            <pre><code class="language-bash">cargo run --example axum --features axum</code></pre>
+          </div>
+          <div class="codeblock">
+            <button class="copy-btn" type="button" aria-label="Copy output">Copy</button>
+            <pre><code class="language-text">update own message:    200 OK updated message 1: mine
+update others message: 403 Forbidden forbidden</code></pre>
+          </div>
+        </section>
+
+        <section id="next">
+          <h2>What&#39;s next</h2>
+          <p>You now have authorization wired through an Axum request end to end. From here:</p>
+          <ul>
+            <li>Revisit the <a href="getting-started.html">main guide</a> for the full rule model — conditional denies, precedence, and heterogeneous resources.</li>
+            <li>Browse the <code>praetor::axum</code> API on <a href="https://docs.rs/praetor" target="_blank" rel="noopener">docs.rs</a>.</li>
+            <li>Read the source and open issues on <a href="https://github.com/chrisfrazier0/praetor" target="_blank" rel="noopener">GitHub</a>.</li>
+          </ul>
+          <p style="margin-top:20px"><a class="btn btn-ghost" href="getting-started.html">← Back to the guide</a></p>
+        </section>
+      </article>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -337,12 +337,14 @@ fn main() {
             <li>In the handler, call <code>ability.authorize(action, &amp;resource)?</code> and map <code>Forbidden</code> to an HTTP 403. <b>(Praetor + your code.)</b></li>
           </ol>
           <div class="callout">Because the decision is a pure, in-memory operation, it is trivial to unit-test: construct claims, build an ability, and assert on <code>can</code> / <code>cannot</code> with no HTTP or database in sight.</div>
+          <p style="margin-top:16px">Using Axum? The optional <code>axum</code> feature wires this flow through a request for you — see the <a href="axum.html">Axum integration guide</a>.</p>
         </section>
 
         <section id="next">
           <h2>What&#39;s next</h2>
           <p>You now have everything needed to model actions and subjects, build abilities, and authorize requests. From here:</p>
           <ul>
+            <li>Wire Praetor into a web app with the <a href="axum.html">Axum integration guide</a> — authorize a request in a single line.</li>
             <li>Browse the complete API on <a href="https://docs.rs/praetor" target="_blank" rel="noopener">docs.rs</a>.</li>
             <li>Read the source and open issues on <a href="https://github.com/chrisfrazier0/praetor" target="_blank" rel="noopener">GitHub</a>.</li>
           </ul>
